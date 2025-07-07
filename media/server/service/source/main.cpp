@@ -47,13 +47,29 @@ int main(int argc, char *argv[])
         RIALTO_SERVER_LOG_WARN("Failed to get git commit ID!");
     }
 
-    firebolt::rialto::server::IGstInitialiser::instance().initialise(&argc, &argv);
+    // PUBLIC_INTERFACE
+    // Initialize GStreamer; log fatal error if initialization fails.
+    try
+    {
+        firebolt::rialto::server::IGstInitialiser::instance().initialise(&argc, &argv);
+    }
+    catch (const std::exception &e)
+    {
+        RIALTO_SERVER_LOG_ERR("Critical error initializing GStreamer: %s", e.what());
+        return EXIT_FAILURE;
+    }
+    catch (...)
+    {
+        RIALTO_SERVER_LOG_ERR("Unknown critical error initializing GStreamer.");
+        return EXIT_FAILURE;
+    }
 
     auto appSessionServer =
         firebolt::rialto::server::IApplicationSessionServerFactory::getFactory()->createApplicationSessionServer();
 
-    if (!appSessionServer->init(argc, argv))
+    if (!appSessionServer || !appSessionServer->init(argc, argv))
     {
+        RIALTO_SERVER_LOG_ERR("Critical error: failed to initialize or start appSessionServer!");
         return EXIT_FAILURE;
     }
     appSessionServer->startService();
